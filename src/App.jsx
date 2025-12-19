@@ -9,12 +9,13 @@ import CycleDetail from './pages/CycleDetail'
 import Approvals from './pages/Approvals'
 import NominationDetail from './pages/NominationDetail'
 
-import Navbar from './components/Navbar'
+import Layout from './components/Layout'
 import ProtectedRoute from './auth/ProtectedRoute'
 import { useAuth } from './auth/AuthContext'
 import AdminRoute from './auth/AdminRoute'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminUserDetail from './pages/admin/AdminUserDetail'
+import AdminUserCreate from './pages/admin/AdminUserCreate'
 
 
 function RootRedirect() {
@@ -25,7 +26,6 @@ function RootRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Navbar />
       <Toaster />
 
       <Routes>
@@ -36,12 +36,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* PROTECTED */}
+        {/* PROTECTED WITH LAYOUT */}
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Layout>
+                <Dashboard />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -50,7 +52,9 @@ export default function App() {
           path="/cycles"
           element={
             <ProtectedRoute>
-              <Cycles />
+              <Layout>
+                <Cycles />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -59,7 +63,9 @@ export default function App() {
           path="/cycles/:id"
           element={
             <ProtectedRoute>
-              <CycleDetail />
+              <Layout>
+                <CycleDetail />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -68,7 +74,9 @@ export default function App() {
           path="/approvals"
           element={
             <ProtectedRoute>
-              <Approvals />
+              <Layout>
+                <Approvals />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -77,7 +85,9 @@ export default function App() {
           path="/nominations/:id"
           element={
             <ProtectedRoute>
-              <NominationDetail />
+              <Layout>
+                <NominationDetail />
+              </Layout>
             </ProtectedRoute>
           }
         />
@@ -86,7 +96,20 @@ export default function App() {
           path="/admin/users"
           element={
             <AdminRoute>
-              <AdminUsers />
+              <Layout>
+                <AdminUsers />
+              </Layout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users/create"
+          element={
+            <AdminRoute>
+              <Layout>
+                <AdminUserCreate />
+              </Layout>
             </AdminRoute>
           }
         />
@@ -95,7 +118,9 @@ export default function App() {
           path="/admin/users/:id"
           element={
             <AdminRoute>
-              <AdminUserDetail />
+              <Layout>
+                <AdminUserDetail />
+              </Layout>
             </AdminRoute>
           }
         />

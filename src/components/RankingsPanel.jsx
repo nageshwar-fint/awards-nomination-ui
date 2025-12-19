@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { getRankings, computeRankings, finalizeCycle } from '../api/rankings'
-import { listUsers } from '../api/admin'
+import { listUsers } from '../api/users'
 import { useAuth } from '../auth/AuthContext'
 import { canComputeRankings, canFinalize } from '../utils/cyclePermissions'
 import { formatDateTime } from '../utils/dateUtils'
+import { handleError } from '../utils/errorHandler'
 
 export default function RankingsPanel({ cycle, onFinalized }) {
   const { user } = useAuth()
@@ -27,7 +28,7 @@ export default function RankingsPanel({ cycle, onFinalized }) {
       setRankings(rankingsData)
       setUsers(usersData)
     } catch (err) {
-      toast.error(err.message || 'Failed to load rankings')
+      handleError(err, 'Failed to load rankings', `rankings-load-${cycle.id}`)
     } finally {
       setLoading(false)
     }
@@ -44,7 +45,7 @@ export default function RankingsPanel({ cycle, onFinalized }) {
       toast.success('Rankings computed successfully')
       loadData()
     } catch (err) {
-      toast.error(err.message || 'Failed to compute rankings')
+      handleError(err, 'Failed to compute rankings', `rankings-compute-${cycle.id}`)
     } finally {
       setComputing(false)
     }
@@ -64,7 +65,7 @@ export default function RankingsPanel({ cycle, onFinalized }) {
       // Reload to get updated cycle status
       window.location.reload()
     } catch (err) {
-      toast.error(err.message || 'Failed to finalize cycle')
+      handleError(err, 'Failed to finalize cycle', `cycle-finalize-${cycle.id}`)
     }
   }
 
@@ -74,7 +75,7 @@ export default function RankingsPanel({ cycle, onFinalized }) {
   }
 
   const canCompute = user && canComputeRankings(cycle, user.role)
-  const canFinalizeCycle = user && canFinalize(cycle, user.role)
+  const canFinalizeCycle = user && canFinalize(cycle, user.role) // HR only
 
   if (loading) {
     return (
@@ -101,6 +102,7 @@ export default function RankingsPanel({ cycle, onFinalized }) {
               <button
                 className="btn btn-danger"
                 onClick={handleFinalize}
+                title="HR only - Finalize cycle (irreversible)"
               >
                 Finalize Cycle
               </button>

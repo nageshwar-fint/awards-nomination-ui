@@ -1,7 +1,7 @@
 import { apiRequest } from './client'
 
-export const listCriteria = (cycleId) =>
-  apiRequest(`/cycles/${cycleId}/criteria`)
+export const listCriteria = (cycleId, activeOnly = false) =>
+  apiRequest(`/cycles/${cycleId}/criteria${activeOnly ? '?active_only=true' : ''}`)
 
 export const addCriteria = (cycleId, criteriaArray) =>
   apiRequest(`/cycles/${cycleId}/criteria`, {

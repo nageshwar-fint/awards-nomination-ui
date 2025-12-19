@@ -4,12 +4,13 @@ import toast from 'react-hot-toast'
 import { getNomination, getNominationApprovals } from '../api/nominations'
 import { getCycle } from '../api/cycles'
 import { listCriteria } from '../api/criteria'
-import { listUsers } from '../api/admin'
+import { listUsers } from '../api/users'
 import ApprovalActions from '../components/ApprovalActions'
 import { useAuth } from '../auth/AuthContext'
 import { getNominationStatusBadgeClass, getApprovalActionBadgeClass } from '../utils/statusBadges'
 import { formatDateTime } from '../utils/dateUtils'
 import { canApprove } from '../utils/cyclePermissions'
+import { handleError } from '../utils/errorHandler'
 
 export default function NominationDetail() {
   const { id } = useParams()
@@ -54,7 +55,7 @@ export default function NominationDetail() {
         }
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to load nomination details')
+      handleError(err, 'Failed to load nomination details', `nomination-detail-${id}`)
     } finally {
       setLoading(false)
     }
@@ -155,33 +156,113 @@ export default function NominationDetail() {
         </div>
       </div>
 
-      {/* Scores */}
+      {/* Scores/Answers */}
       {scores.length > 0 && (
         <div className="card mb-3">
           <div className="card-header">
-            <h5 className="mb-0">Scores</h5>
+            <h5 className="mb-0">Criteria Answers</h5>
           </div>
           <div className="card-body">
-            <div className="table-responsive">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Criteria</th>
-                    <th>Score</th>
-                    <th>Comment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {scores.map((score, index) => (
-                    <tr key={index}>
-                      <td>{getCriteriaName(score.criteria_id)}</td>
-                      <td><strong>{score.score}</strong></td>
-                      <td>{score.comment || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {scores.map((score, index) => {
+              const criteriaItem = criteria.find(c => c.id === score.criteria_id)
+              const config = criteriaItem?.config || {}
+              const questionType = config.type || 'legacy'
+              
+              return (
+                <div key={index} className="mb-4 p-3 border rounded">
+                  <h6 className="mb-2">
+                    {getCriteriaName(score.criteria_id)}
+                    {criteriaItem && (
+                      <span className="text-muted ms-2 small">(Weight: {criteriaItem.weight})</span>
+                    )}
+                  </h6>
+                  
+                  {criteriaItem?.description && (
+                    <p className="text-muted small mb-2">{criteriaItem.description}</p>
+                  )}
+
+                  {/* Legacy score display */}
+                  {questionType === 'legacy' && (
+                    <div>
+                      <div className="mb-2">
+                        <strong>Score:</strong> <span className="badge bg-primary">{score.score || 'N/A'}</span>
+                      </div>
+                      {score.comment && (
+                        <div>
+                          <strong>Comment:</strong> <p className="mb-0">{score.comment}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Flexible answer display */}
+                  {score.answer && (
+                    <div>
+                      {questionType === 'text' && score.answer.text && (
+                        <div>
+                          <strong>Answer:</strong>
+                          <p className="mb-0 mt-1">{score.answer.text}</p>
+                        </div>
+                      )}
+                      
+                      {questionType === 'single_select' && score.answer.selected && (
+                        <div>
+                          <strong>Selected:</strong>
+                          <span className="badge bg-info ms-2">{score.answer.selected}</span>
+                        </div>
+                      )}
+                      
+                      {questionType === 'multi_select' && score.answer.selected_list && (
+                        <div>
+                          <strong>Selected:</strong>
+                          <div className="mt-1">
+                            {score.answer.selected_list.map((item, idx) => (
+                              <span key={idx} className="badge bg-info me-1">{item}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {questionType === 'text_with_image' && (
+                        <div>
+                          {score.answer.text && (
+                            <div className="mb-2">
+                              <strong>Answer:</strong>
+                              <p className="mb-0 mt-1">{score.answer.text}</p>
+                            </div>
+                          )}
+                          {score.answer.image_url && (
+                            <div>
+                              <strong>Image:</strong>
+                              <div className="mt-2">
+                                <img 
+                                  src={score.answer.image_url} 
+                                  alt="Nomination evidence" 
+                                  className="img-thumbnail"
+                                  style={{ maxWidth: '400px', maxHeight: '400px' }}
+                                  onError={(e) => {
+                                    e.target.style.display = 'none'
+                                    e.target.nextSibling.style.display = 'block'
+                                  }}
+                                />
+                                <div style={{ display: 'none' }} className="text-danger small">
+                                  Failed to load image
+                                </div>
+                                <div className="mt-1">
+                                  <a href={score.answer.image_url} target="_blank" rel="noopener noreferrer">
+                                    Open image in new tab
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -217,6 +298,11 @@ export default function NominationDetail() {
                         {approval.action}
                       </span>
                       <strong>{getUserName(approval.actor_user_id)}</strong>
+                      {approval.rating !== null && approval.rating !== undefined && (
+                        <span className="badge bg-warning text-dark ms-2">
+                          Rating: {approval.rating}/10
+                        </span>
+                      )}
                       {approval.reason && (
                         <div className="mt-1">
                           <small className="text-muted">{approval.reason}</small>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-
 import { listCycles, deleteCycle } from '../api/cycles'
 import { useAuth } from '../auth/AuthContext'
 import CreateCycleForm from '../components/CreateCycleForm'
@@ -8,6 +7,7 @@ import {
   canCreateCycle,
   canDeleteCycle,
 } from '../utils/cyclePermissions'
+import { handleError } from '../utils/errorHandler'
 
 export default function Cycles() {
   const { user } = useAuth()
@@ -22,7 +22,7 @@ export default function Cycles() {
       const data = await listCycles()
       setCycles(data)
     } catch (err) {
-      toast.error(err.message || 'Failed to load cycles')
+      handleError(err, 'Failed to load cycles', 'cycles-load')
     } finally {
       setLoading(false)
     }
@@ -40,7 +40,7 @@ export default function Cycles() {
       toast.success('Cycle deleted')
       loadCycles()
     } catch (err) {
-      toast.error(err.message || 'Delete failed')
+      handleError(err, 'Delete failed', `delete-cycle-${cycle.id}`)
     }
   }
 
@@ -48,7 +48,14 @@ export default function Cycles() {
     <div className="container mt-4">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3>Nomination Cycles</h3>
+        <div>
+          <h3>Nomination Cycles</h3>
+          {user && !canCreateCycle(user.role) && (
+            <p className="text-muted small mb-0">
+              Only HR can create and manage cycles. You have read-only access.
+            </p>
+          )}
+        </div>
 
         {user && canCreateCycle(user.role) && (
           <button

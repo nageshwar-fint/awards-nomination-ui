@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { createCycle } from '../api/cycles'
 import toast from 'react-hot-toast'
+import { handleError } from '../utils/errorHandler'
 
 export default function CreateCycleForm({ onCreated, onCancel }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
@@ -16,7 +17,7 @@ export default function CreateCycleForm({ onCreated, onCancel }) {
 
       // Validate dates
       if (endDate <= startDate) {
-        toast.error('End date must be after start date')
+        handleError('End date must be after start date', 'End date must be after start date', 'cycle-date-validation')
         return
       }
 
@@ -31,7 +32,7 @@ export default function CreateCycleForm({ onCreated, onCancel }) {
       reset()
       onCreated()
     } catch (err) {
-      toast.error(err.message || 'Failed to create cycle')
+      handleError(err, 'Failed to create cycle', 'cycle-create')
     }
   }
 

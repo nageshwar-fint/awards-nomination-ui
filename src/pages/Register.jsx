@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 
 import { registerUser } from '../api/auth'
 import { SECURITY_QUESTIONS } from '../constants/securityQuestions'
+import { handleError } from '../utils/errorHandler'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -66,7 +67,7 @@ export default function Register() {
       toast.success('Registration successful. Please login.')
       navigate('/login')
     } catch (err) {
-      toast.error(err.message || 'Registration failed')
+      handleError(err, 'Registration failed', 'register-error')
     }
   }
 

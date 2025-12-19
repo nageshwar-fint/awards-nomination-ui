@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getUser, updateUser } from '../../api/admin'
 import toast from 'react-hot-toast'
 import { ROLES } from '../../constants/roles'
+import { handleError } from '../../utils/errorHandler'
 
 export default function AdminUserDetail() {
   const { id } = useParams()
@@ -21,7 +22,7 @@ export default function AdminUserDetail() {
       const userData = await getUser(id)
       setUser(userData)
     } catch (err) {
-      toast.error(err.message || 'Failed to load user')
+      handleError(err, 'Failed to load user', `user-load-${id}`)
       navigate('/admin/users')
     } finally {
       setLoading(false)
@@ -45,7 +46,7 @@ export default function AdminUserDetail() {
       toast.success('User updated successfully')
       navigate('/admin/users')
     } catch (err) {
-      toast.error(err.message || 'Failed to update user')
+      handleError(err, 'Failed to update user', `user-update-${id}`)
     } finally {
       setSaving(false)
     }

@@ -11,3 +11,8 @@ export const registerUser = (data) =>
     method: 'POST',
     body: JSON.stringify(data),
   })
+
+export const logout = () =>
+  apiRequest('/auth/logout', {
+    method: 'POST',
+  })

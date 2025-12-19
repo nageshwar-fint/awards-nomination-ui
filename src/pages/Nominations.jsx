@@ -1,6 +1,9 @@
 import { useForm, useFieldArray } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { apiRequest } from '../api/client'
+import { useAuth } from '../auth/AuthContext'
+import { handleError } from '../utils/errorHandler'
+
 
 export default function Nominations({ criteria, cycleId }) {
   const { register, handleSubmit, control } = useForm({
@@ -8,6 +11,9 @@ export default function Nominations({ criteria, cycleId }) {
   })
 
   const { fields } = useFieldArray({ control, name: 'scores' })
+  const { user } = useAuth()
+
+  console.log(user)
 
   const onSubmit = async (data) => {
     try {
@@ -17,7 +23,7 @@ export default function Nominations({ criteria, cycleId }) {
       })
       toast.success('Nomination submitted')
     } catch (e) {
-      toast.error(e.message)
+      handleError(e, 'Failed to submit nomination', 'nomination-submit')
     }
   }
 

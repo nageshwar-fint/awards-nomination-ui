@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { getCycle, updateCycle } from '../api/cycles'
 import { listCriteria } from '../api/criteria'
 import { listNominations } from '../api/nominations'
-import { listUsers } from '../api/admin'
+import { listUsers } from '../api/users'
 import CriteriaManager from '../components/CriteriaManager'
 import NominationForm from '../components/NominationForm'
 import RankingsPanel from '../components/RankingsPanel'
@@ -13,6 +13,7 @@ import { useAuth } from '../auth/AuthContext'
 import { canEditCycle, canSubmitNomination } from '../utils/cyclePermissions'
 import { getCycleStatusBadgeClass, getNominationStatusBadgeClass } from '../utils/statusBadges'
 import { formatDateTime, formatDateForInput } from '../utils/dateUtils'
+import { handleError } from '../utils/errorHandler'
 
 export default function CycleDetail() {
   const { id } = useParams()
@@ -32,17 +33,37 @@ export default function CycleDetail() {
 
   const loadData = async () => {
     setLoading(true)
+    
     try {
-      const [cycleData, criteriaData, nominationsData, usersData] = await Promise.all([
-        getCycle(id),
-        listCriteria(id).catch(() => []),
+      // Load cycle first - if this fails, show error and stop
+      let cycleData
+      try {
+        cycleData = await getCycle(id)
+      } catch (err) {
+        handleError(err, 'Failed to load cycle', `cycle-load-${id}`)
+        setLoading(false)
+        return // Stop here if cycle fails
+      }
+
+      // Load other data in parallel (these can fail silently)
+      // Load active criteria for nomination form, all criteria for CriteriaManager
+      const [criteriaData, nominationsData, usersData] = await Promise.all([
+        listCriteria(id, true).catch(() => []), // Only active criteria for nomination form
         listNominations({ cycle_id: id }).catch(() => []),
         listUsers().catch(() => [])
       ])
+      
       setCycle(cycleData)
       setCriteria(criteriaData)
       setNominations(nominationsData)
       setUsers(usersData)
+      
+      console.log('CycleDetail - Loaded data:', {
+        cycle: cycleData?.name,
+        status: cycleData?.status,
+        criteriaCount: criteriaData?.length,
+        activeCriteriaCount: criteriaData?.filter(c => c.is_active)?.length
+      })
       
       // Reset form with cycle data
       reset({
@@ -52,7 +73,8 @@ export default function CycleDetail() {
         status: cycleData.status
       })
     } catch (err) {
-      toast.error(err.message || 'Failed to load cycle')
+      // This should rarely be hit now, but handle just in case
+      handleError(err, 'Failed to load data', `cycle-load-${id}`)
     } finally {
       setLoading(false)
     }
@@ -62,6 +84,16 @@ export default function CycleDetail() {
     try {
       // Convert date to ISO string (set start date to beginning of day, end date to end of day)
       const updateData = { ...data }
+      
+      // For non-DRAFT cycles, only allow status and dates
+      if (cycle.status !== 'DRAFT') {
+        delete updateData.name
+        // For CLOSED cycles, only allow status
+        if (cycle.status === 'CLOSED') {
+          delete updateData.start_at
+          delete updateData.end_at
+        }
+      }
       
       if (data.start_at) {
         const startDate = new Date(data.start_at)
@@ -80,7 +112,7 @@ export default function CycleDetail() {
       setShowEditForm(false)
       loadData()
     } catch (err) {
-      toast.error(err.message || 'Failed to update cycle')
+      handleError(err, 'Failed to update cycle', `cycle-update-${id}`)
     }
   }
 
@@ -92,7 +124,7 @@ export default function CycleDetail() {
       toast.success(`Cycle status changed to ${newStatus}`)
       loadData()
     } catch (err) {
-      toast.error(err.message || 'Failed to update status')
+      handleError(err, 'Failed to update status', `cycle-status-${id}`)
     }
   }
 
@@ -171,38 +203,67 @@ export default function CycleDetail() {
       {showEditForm && canEdit && (
         <div className="card card-body mb-3">
           <h5>Edit Cycle</h5>
+          {cycle.status !== 'DRAFT' && (
+            <div className="alert alert-warning mb-3">
+              <small>
+                {cycle.status === 'OPEN' && 'Only status and dates can be updated for OPEN cycles.'}
+                {cycle.status === 'CLOSED' && 'Only status can be updated for CLOSED cycles.'}
+              </small>
+            </div>
+          )}
           <form onSubmit={handleSubmit(handleUpdateCycle)}>
-            <div className="mb-2">
-              <label className="form-label">Name</label>
-              <input
-                className="form-control"
-                {...register('name', { required: true })}
-              />
-            </div>
-            <div className="row">
-              <div className="col-md-6 mb-3">
-                <label className="form-label">Start Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  {...register('start_at', { required: true })}
-                />
-              </div>
-              <div className="col-md-6 mb-3">
-                <label className="form-label">End Date</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  {...register('end_at', { required: true })}
-                />
-              </div>
-            </div>
             {cycle.status === 'DRAFT' && (
+              <div className="mb-2">
+                <label className="form-label">Name</label>
+                <input
+                  className="form-control"
+                  {...register('name', { required: true })}
+                />
+              </div>
+            )}
+            {cycle.status !== 'CLOSED' && (
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Start Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    {...register('start_at', { required: true })}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    {...register('end_at', { required: true })}
+                  />
+                </div>
+              </div>
+            )}
+            {(cycle.status === 'DRAFT' || cycle.status === 'OPEN' || cycle.status === 'CLOSED') && (
               <div className="mb-2">
                 <label className="form-label">Status</label>
                 <select className="form-select" {...register('status')}>
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="OPEN">OPEN</option>
+                  {cycle.status === 'DRAFT' && (
+                    <>
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="OPEN">OPEN</option>
+                    </>
+                  )}
+                  {cycle.status === 'OPEN' && (
+                    <>
+                      <option value="OPEN">OPEN</option>
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </>
+                  )}
+                  {cycle.status === 'CLOSED' && (
+                    <>
+                      <option value="CLOSED">CLOSED</option>
+                      <option value="OPEN">OPEN</option>
+                    </>
+                  )}
                 </select>
               </div>
             )}
@@ -223,15 +284,33 @@ export default function CycleDetail() {
       )}
 
       {/* Status Actions */}
-      {canEdit && cycle.status === 'DRAFT' && (
+      {canEdit && (
         <div className="alert alert-info mb-3">
           <strong>Quick Actions:</strong>{' '}
-          <button
-            className="btn btn-sm btn-success"
-            onClick={() => handleStatusChange('OPEN')}
-          >
-            Open Cycle
-          </button>
+          {cycle.status === 'DRAFT' && (
+            <button
+              className="btn btn-sm btn-success me-2"
+              onClick={() => handleStatusChange('OPEN')}
+            >
+              Open Cycle
+            </button>
+          )}
+          {cycle.status === 'OPEN' && (
+            <>
+              <button
+                className="btn btn-sm btn-warning me-2"
+                onClick={() => handleStatusChange('DRAFT')}
+              >
+                Change to DRAFT
+              </button>
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => handleStatusChange('CLOSED')}
+              >
+                Close Cycle
+              </button>
+            </>
+          )}
         </div>
       )}
 
