@@ -268,7 +268,7 @@ export default function AdminUsers() {
                               </td>
                               <td>
                                 <span className="text-muted">
-                                  {user.team_id ? `Team ${user.team_id.slice(0, 8)}...` : 'No team'}
+                                  {user.team_name || 'No team'}
                                 </span>
                               </td>
                               <td>

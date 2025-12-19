@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getUser, updateUser } from '../../api/admin'
+import { listTeams } from '../../api/teams'
 import toast from 'react-hot-toast'
 import { ROLES } from '../../constants/roles'
 import { handleError } from '../../utils/errorHandler'
@@ -11,9 +12,12 @@ export default function AdminUserDetail() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [loadingTeams, setLoadingTeams] = useState(true)
 
   useEffect(() => {
     loadUser()
+    loadTeams()
   }, [id])
 
   const loadUser = async () => {
@@ -26,6 +30,19 @@ export default function AdminUserDetail() {
       navigate('/admin/users')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadTeams = async () => {
+    setLoadingTeams(true)
+    try {
+      const teamsData = await listTeams()
+      setTeams(teamsData || [])
+    } catch (err) {
+      console.error('Failed to load teams:', err)
+      // Don't show error - teams are optional
+    } finally {
+      setLoadingTeams(false)
     }
   }
 
@@ -145,17 +162,28 @@ export default function AdminUserDetail() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Team ID</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="UUID or leave empty"
-              value={user.team_id || ''}
-              onChange={e =>
-                setUser({ ...user, team_id: e.target.value || null })
-              }
-            />
-            <small className="text-muted">Optional: Enter team UUID or leave empty</small>
+            <label className="form-label">Team</label>
+            {loadingTeams ? (
+              <div className="form-control">
+                <small className="text-muted">Loading teams...</small>
+              </div>
+            ) : (
+              <select
+                className="form-select"
+                value={user.team_id || ''}
+                onChange={e =>
+                  setUser({ ...user, team_id: e.target.value || null })
+                }
+              >
+                <option value="">No team (leave empty)</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <small className="text-muted">Optional: Select a team if user belongs to a team</small>
           </div>
 
           <div className="mt-4">

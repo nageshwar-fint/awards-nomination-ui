@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { createUser } from '../../api/admin'
+import { listTeams } from '../../api/teams'
 import toast from 'react-hot-toast'
 import { ROLES } from '../../constants/roles'
 import { handleError } from '../../utils/errorHandler'
@@ -11,7 +12,26 @@ export default function AdminUserCreate() {
   const navigate = useNavigate()
   const { register, handleSubmit, formState: { errors }, watch } = useForm()
   const [saving, setSaving] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [loadingTeams, setLoadingTeams] = useState(true)
   const password = watch('password')
+
+  useEffect(() => {
+    loadTeams()
+  }, [])
+
+  const loadTeams = async () => {
+    setLoadingTeams(true)
+    try {
+      const teamsData = await listTeams()
+      setTeams(teamsData || [])
+    } catch (err) {
+      console.error('Failed to load teams:', err)
+      // Don't show error - teams are optional
+    } finally {
+      setLoadingTeams(false)
+    }
+  }
 
   const onSubmit = async (data) => {
     setSaving(true)
@@ -21,7 +41,7 @@ export default function AdminUserCreate() {
         email: data.email,
         password: data.password,
         role: data.role,
-        team_id: data.team_id || null,
+        team_id: data.team_id && data.team_id !== '' ? data.team_id : null,
         status: data.status || 'ACTIVE'
       })
       toast.success('User created successfully')
@@ -161,15 +181,26 @@ export default function AdminUserCreate() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Team ID (Optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Enter team UUID or leave empty"
-              {...register('team_id')}
-            />
+            <label className="form-label">Team (Optional)</label>
+            {loadingTeams ? (
+              <div className="form-control">
+                <small className="text-muted">Loading teams...</small>
+              </div>
+            ) : (
+              <select
+                className="form-select"
+                {...register('team_id')}
+              >
+                <option value="">No team (leave empty)</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <small className="form-text text-muted">
-              Optional: Enter team UUID if user belongs to a team
+              Optional: Select a team if user belongs to a team. You can also leave empty.
             </small>
           </div>
 

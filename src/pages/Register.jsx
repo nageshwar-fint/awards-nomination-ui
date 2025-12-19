@@ -1,9 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { useNavigate, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 
 import { registerUser } from '../api/auth'
+import { listTeams } from '../api/teams'
 import { SECURITY_QUESTIONS } from '../constants/securityQuestions'
 import { handleError } from '../utils/errorHandler'
 
@@ -12,6 +13,25 @@ export default function Register() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [teams, setTeams] = useState([])
+  const [loadingTeams, setLoadingTeams] = useState(true)
+
+  useEffect(() => {
+    loadTeams()
+  }, [])
+
+  const loadTeams = async () => {
+    setLoadingTeams(true)
+    try {
+      const teamsData = await listTeams()
+      setTeams(teamsData || [])
+    } catch (err) {
+      console.error('Failed to load teams:', err)
+      // Don't show error - teams are optional
+    } finally {
+      setLoadingTeams(false)
+    }
+  }
 
   const {
     register,
@@ -58,7 +78,7 @@ export default function Register() {
       name: data.name,
       email: data.email,
       password: data.password,
-      team_id: data.team_id || null,
+      team_id: data.team_id && data.team_id !== '' ? data.team_id : null,
       security_questions,
     }
 
@@ -154,12 +174,30 @@ export default function Register() {
           </small>
         )}
 
-        {/* Team ID */}
-        <input
-          className="form-control mb-3"
-          placeholder="Team ID (optional)"
-          {...register('team_id')}
-        />
+        {/* Team */}
+        <div className="mb-3">
+          <label className="form-label">Team (Optional)</label>
+          {loadingTeams ? (
+            <div className="form-control">
+              <small className="text-muted">Loading teams...</small>
+            </div>
+          ) : (
+            <select
+              className="form-select"
+              {...register('team_id')}
+            >
+              <option value="">No team (leave empty)</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <small className="form-text text-muted">
+            Optional: Select a team if you belong to a team
+          </small>
+        </div>
 
         <hr />
 

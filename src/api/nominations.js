@@ -24,3 +24,8 @@ export const submitNomination = (data) =>
 
 export const getNominationApprovals = (nominationId) =>
   apiRequest(`/nominations/${nominationId}/approvals`)
+
+export const revertNomination = (nominationId) =>
+  apiRequest(`/nominations/${nominationId}`, {
+    method: 'DELETE'
+  })

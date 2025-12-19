@@ -128,7 +128,21 @@ export default function CycleDetail() {
     }
   }
 
-  const getUserName = (userId) => {
+  const getUserName = (nomination, field) => {
+    // Use name from API response if available
+    if (field === 'nominee' && nomination?.nominee_name) {
+      return nomination.nominee_name
+    }
+    if (field === 'submitted_by' && nomination?.submitted_by_name) {
+      return nomination.submitted_by_name
+    }
+    // Fallback to user lookup
+    const userId = field === 'nominee' ? nomination?.nominee_user_id : nomination?.submitted_by
+    const foundUser = users.find(u => u.id === userId)
+    return foundUser ? foundUser.name : userId
+  }
+  
+  const getUserNameById = (userId) => {
     const foundUser = users.find(u => u.id === userId)
     return foundUser ? foundUser.name : userId
   }
@@ -193,7 +207,7 @@ export default function CycleDetail() {
           </div>
           {cycle.created_by && (
             <div className="mt-2">
-              <strong>Created By:</strong> {getUserName(cycle.created_by)}
+              <strong>Created By:</strong> {getUserNameById(cycle.created_by)}
             </div>
           )}
         </div>
@@ -335,8 +349,8 @@ export default function CycleDetail() {
               <tbody>
                 {nominations.map((nomination) => (
                   <tr key={nomination.id}>
-                    <td>{getUserName(nomination.nominee_user_id)}</td>
-                    <td>{getUserName(nomination.submitted_by)}</td>
+                    <td>{getUserName(nomination, 'nominee')}</td>
+                    <td>{getUserName(nomination, 'submitted_by')}</td>
                     <td>
                       <span className={`badge ${getNominationStatusBadgeClass(nomination.status)}`}>
                         {nomination.status}

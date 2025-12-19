@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { getNomination, getNominationApprovals } from '../api/nominations'
+import { getNomination, getNominationApprovals, revertNomination } from '../api/nominations'
 import { getCycle } from '../api/cycles'
 import { listCriteria } from '../api/criteria'
 import { listUsers } from '../api/users'
@@ -61,12 +61,30 @@ export default function NominationDetail() {
     }
   }
 
-  const getUserName = (userId) => {
+  const getUserName = (nomination, field) => {
+    // Use name from API response if available
+    if (field === 'nominee' && nomination?.nominee_name) {
+      return nomination.nominee_name
+    }
+    if (field === 'submitted_by' && nomination?.submitted_by_name) {
+      return nomination.submitted_by_name
+    }
+    // Fallback to user lookup
+    const userId = field === 'nominee' ? nomination?.nominee_user_id : nomination?.submitted_by
     const foundUser = users.find(u => u.id === userId)
     return foundUser ? foundUser.name : userId
   }
 
-  const getUserEmail = (userId) => {
+  const getUserEmail = (nomination, field) => {
+    // Use email from API response if available
+    if (field === 'nominee' && nomination?.nominee_email) {
+      return nomination.nominee_email
+    }
+    if (field === 'submitted_by' && nomination?.submitted_by_email) {
+      return nomination.submitted_by_email
+    }
+    // Fallback to user lookup
+    const userId = field === 'nominee' ? nomination?.nominee_user_id : nomination?.submitted_by
     const foundUser = users.find(u => u.id === userId)
     return foundUser ? foundUser.email : ''
   }
@@ -74,6 +92,20 @@ export default function NominationDetail() {
   const getCriteriaName = (criteriaId) => {
     const foundCriteria = criteria.find(c => c.id === criteriaId)
     return foundCriteria ? foundCriteria.name : criteriaId
+  }
+
+  const handleRevert = async () => {
+    if (!window.confirm('Are you sure you want to revert this nomination? This will delete the nomination and allow the employee to be nominated again.')) {
+      return
+    }
+
+    try {
+      await revertNomination(id)
+      toast.success('Nomination reverted successfully. The employee can now be nominated again.')
+      navigate(-1)
+    } catch (err) {
+      handleError(err, 'Failed to revert nomination', `nomination-revert-${id}`)
+    }
   }
 
   if (loading) {
@@ -99,12 +131,23 @@ export default function NominationDetail() {
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Nomination Details</h3>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => navigate(-1)}
-        >
-          Back
-        </button>
+        <div>
+          {user && user.role === 'HR' && (
+            <button
+              className="btn btn-danger me-2"
+              onClick={handleRevert}
+              title="Revert this nomination to allow the employee to be nominated again"
+            >
+              Revert Nomination
+            </button>
+          )}
+          <button
+            className="btn btn-outline-secondary"
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
+        </div>
       </div>
 
       {/* Nomination Info */}
@@ -121,18 +164,18 @@ export default function NominationDetail() {
           <div className="row">
             <div className="col-md-6">
               <strong>Nominee:</strong>{' '}
-              {getUserName(nomination.nominee_user_id)}
+              {getUserName(nomination, 'nominee')}
               <br />
               <small className="text-muted">
-                {getUserEmail(nomination.nominee_user_id)}
+                {getUserEmail(nomination, 'nominee')}
               </small>
             </div>
             <div className="col-md-6">
               <strong>Submitted By:</strong>{' '}
-              {getUserName(nomination.submitted_by)}
+              {getUserName(nomination, 'submitted_by')}
               <br />
               <small className="text-muted">
-                {getUserEmail(nomination.submitted_by)}
+                {getUserEmail(nomination, 'submitted_by')}
               </small>
             </div>
           </div>

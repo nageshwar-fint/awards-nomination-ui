@@ -119,7 +119,16 @@ function ApprovalsContent() {
     setRating('')
   }
 
-  const getUserName = (userId) => {
+  const getUserName = (nomination, field) => {
+    // Use name from API response if available, otherwise fallback to lookup
+    if (field === 'nominee' && nomination.nominee_name) {
+      return nomination.nominee_name
+    }
+    if (field === 'submitted_by' && nomination.submitted_by_name) {
+      return nomination.submitted_by_name
+    }
+    // Fallback to user lookup
+    const userId = field === 'nominee' ? nomination.nominee_user_id : nomination.submitted_by
     const user = users.find(u => u.id === userId)
     return user ? user.name : userId
   }
@@ -196,7 +205,7 @@ function ApprovalsContent() {
               <tbody>
                 {nominations.map((nomination) => (
                   <tr key={nomination.id}>
-                    <td>{getUserName(nomination.nominee_user_id)}</td>
+                    <td>{getUserName(nomination, 'nominee')}</td>
                     <td>
                       <a
                         href={`/cycles/${nomination.cycle_id}`}
@@ -208,7 +217,7 @@ function ApprovalsContent() {
                         {getCycleName(nomination.cycle_id)}
                       </a>
                     </td>
-                    <td>{getUserName(nomination.submitted_by)}</td>
+                    <td>{getUserName(nomination, 'submitted_by')}</td>
                     <td>
                       <span className={`badge ${getNominationStatusBadgeClass(nomination.status)}`}>
                         {nomination.status}
