@@ -89,11 +89,26 @@ export default function Navbar() {
               <>
                 <li className="nav-item dropdown">
                   <button
-                    className="btn btn-dark dropdown-toggle"
+                    className="btn btn-dark dropdown-toggle d-flex align-items-center gap-2"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                   >
-                    {user.name} ({user.role})
+                    {user.profile_picture_url && (
+                      <img 
+                        src={user.profile_picture_url} 
+                        alt={user.name || user.email || 'User'}
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    )}
+                    <span>{user.name || user.email || 'User'} ({user.role})</span>
                   </button>
 
                   <ul className="dropdown-menu dropdown-menu-end">

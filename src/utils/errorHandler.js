@@ -38,7 +38,8 @@ export const handleError = (error, defaultMessage = 'An error occurred', id = nu
   // Check if a toast with this ID was shown recently
   const lastShown = activeToasts.get(toastId)
   if (lastShown && (now - lastShown) < CLEANUP_INTERVAL) {
-    return // Don't show duplicate - it was shown recently
+    // Don't show duplicate - it was shown recently
+    return
   }
 
   // Mark this toast as shown
@@ -51,7 +52,11 @@ export const handleError = (error, defaultMessage = 'An error occurred', id = nu
   // react-hot-toast will automatically prevent duplicates when using the same ID
   toast.error(errorMessage, {
     id: toastId,
-    duration: 4000,
+    duration: 1000,
+    style: {
+      background: '#ef4444',
+      color: '#fff',
+    },
   })
 
   // Clean up the tracking after the toast duration

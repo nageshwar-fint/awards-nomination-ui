@@ -70,10 +70,30 @@ export default function Sidebar() {
       {user && (
         <div className="sidebar-user">
           <div className="user-avatar">
-            {user.name?.charAt(0).toUpperCase() || 'U'}
+            {user.profile_picture_url ? (
+              <img 
+                src={user.profile_picture_url} 
+                alt={user.name || user.email || 'User'}
+                className="user-avatar-img"
+                onError={(e) => {
+                  // Fallback to initial if image fails to load
+                  const initialDiv = e.target.nextElementSibling
+                  if (initialDiv) {
+                    e.target.style.display = 'none'
+                    initialDiv.style.display = 'flex'
+                  }
+                }}
+              />
+            ) : null}
+            <div 
+              className="user-avatar-initial" 
+              style={{ display: user.profile_picture_url ? 'none' : 'flex' }}
+            >
+              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
           </div>
           <div className="user-info">
-            <div className="user-name">{user.name || 'User'}</div>
+            <div className="user-name">{user.name || user.email || 'User'}</div>
             <div className="user-role">{user.role}</div>
           </div>
         </div>

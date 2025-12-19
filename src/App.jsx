@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -26,8 +25,6 @@ function RootRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Toaster />
-
       <Routes>
         {/* ROOT */}
         <Route path="/" element={<RootRedirect />} />

@@ -1,5 +1,12 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 
+// Global logout handler - will be set by AuthContext
+let globalLogoutHandler = null
+
+export function setLogoutHandler(handler) {
+  globalLogoutHandler = handler
+}
+
 /**
  * API request helper with error handling
  * Note: This function does NOT show toast notifications.
@@ -24,6 +31,23 @@ export async function apiRequest(path, options = {}) {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
+      
+      // Handle 401 Unauthorized - token expired or invalid
+      if (res.status === 401) {
+        // Clear token and trigger automatic logout
+        localStorage.removeItem('jwt_token')
+        if (globalLogoutHandler) {
+          // Pass true for redirectToLogin, true for showMessage
+          globalLogoutHandler(true, true)
+        } else {
+          // Fallback: redirect to login if handler not set
+          window.location.href = '/login'
+        }
+        const error = new Error('Your session has expired. Please login again.')
+        error.status = 401
+        error.data = err
+        throw error
+      }
       
       // Handle FastAPI validation errors (422)
       if (res.status === 422 && Array.isArray(err.detail)) {
