@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
+import { uploadImage } from '../api/uploads'
+import toast from 'react-hot-toast'
 
 /**
  * Component that renders the appropriate input based on criteria config type
@@ -114,6 +117,42 @@ export default function AnswerInput({ criteria, fieldName }) {
   // Text with image type
   if (questionType === 'text_with_image') {
     const imageUrl = watch(`${fieldName}.answer.image_url`)
+    const [uploading, setUploading] = useState(false)
+    const [uploadedFile, setUploadedFile] = useState(null)
+    
+    const handleFileChange = async (e) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!validTypes.includes(file.type)) {
+        toast.error('Please select a valid image file (JPG, PNG, GIF, or WEBP)')
+        e.target.value = ''
+        return
+      }
+      
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (file.size > maxSize) {
+        toast.error('Image size must be less than 10MB')
+        e.target.value = ''
+        return
+      }
+      
+      setUploading(true)
+      try {
+        const result = await uploadImage(file)
+        setValue(`${fieldName}.answer.image_url`, result.url)
+        setUploadedFile(file)
+        toast.success('Image uploaded successfully')
+      } catch (err) {
+        toast.error(err.message || 'Failed to upload image')
+        e.target.value = ''
+      } finally {
+        setUploading(false)
+      }
+    }
     
     return (
       <div>
@@ -127,33 +166,54 @@ export default function AnswerInput({ criteria, fieldName }) {
         />
         <div className="mb-2">
           <label className="form-label small">
-            Image URL {imageRequired && <span className="text-danger">*</span>}
+            Upload Image {imageRequired && <span className="text-danger">*</span>}
           </label>
           <input
-            type="url"
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
             className="form-control"
-            placeholder="https://example.com/image.jpg"
-            {...register(`${fieldName}.answer.image_url`, {
-              required: imageRequired ? 'Image URL is required' : false,
-              pattern: {
-                value: /^https?:\/\/.+/,
-                message: 'Please enter a valid URL starting with http:// or https://'
-              }
-            })}
+            onChange={handleFileChange}
+            disabled={uploading}
           />
-          {imageUrl && (
+          <small className="form-text text-muted">
+            Supported formats: JPG, PNG, GIF, WEBP (Max 10MB)
+          </small>
+          {uploading && (
+            <div className="mt-2">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Uploading...</span>
+              </div>
+              <span className="text-muted">Uploading image...</span>
+            </div>
+          )}
+          {imageUrl && !uploading && (
             <div className="mt-2">
               <img 
                 src={imageUrl} 
                 alt="Preview" 
                 className="img-thumbnail"
-                style={{ maxWidth: '200px', maxHeight: '200px' }}
+                style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'contain' }}
                 onError={(e) => {
                   e.target.style.display = 'none'
+                  toast.error('Failed to load image preview')
                 }}
               />
+              {uploadedFile && (
+                <div className="mt-1">
+                  <small className="text-muted">
+                    {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(2)} KB)
+                  </small>
+                </div>
+              )}
             </div>
           )}
+          {/* Hidden input to store the URL for form submission */}
+          <input
+            type="hidden"
+            {...register(`${fieldName}.answer.image_url`, {
+              required: imageRequired ? 'Image is required' : false
+            })}
+          />
         </div>
       </div>
     )

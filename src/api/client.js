@@ -20,13 +20,17 @@ export async function apiRequest(path, options = {}) {
   const shouldAddAuth = token && !isAuthEndpoint
 
   try {
+    // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
+    const isFormData = options.body instanceof FormData
+    const headers = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(shouldAddAuth ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {})
+    }
+    
     const res = await fetch(`${BASE_URL}${path}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(shouldAddAuth ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {})
-      }
+      headers
     })
 
     if (!res.ok) {
