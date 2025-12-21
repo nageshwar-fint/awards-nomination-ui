@@ -227,33 +227,33 @@ export default function CycleDetail() {
           )}
           <form onSubmit={handleSubmit(handleUpdateCycle)}>
             {cycle.status === 'DRAFT' && (
-              <div className="mb-2">
-                <label className="form-label">Name</label>
-                <input
-                  className="form-control"
-                  {...register('name', { required: true })}
-                />
-              </div>
+            <div className="mb-2">
+              <label className="form-label">Name</label>
+              <input
+                className="form-control"
+                {...register('name', { required: true })}
+              />
+            </div>
             )}
             {cycle.status !== 'CLOSED' && (
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Start Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    {...register('start_at', { required: true })}
-                  />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">End Date</label>
-                  <input
-                    type="date"
-                    className="form-control"
-                    {...register('end_at', { required: true })}
-                  />
-                </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label className="form-label">Start Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  {...register('start_at', { required: true })}
+                />
               </div>
+              <div className="col-md-6 mb-3">
+                <label className="form-label">End Date</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  {...register('end_at', { required: true })}
+                />
+              </div>
+            </div>
             )}
             {(cycle.status === 'DRAFT' || cycle.status === 'OPEN' || cycle.status === 'CLOSED') && (
               <div className="mb-2">
@@ -261,8 +261,8 @@ export default function CycleDetail() {
                 <select className="form-select" {...register('status')}>
                   {cycle.status === 'DRAFT' && (
                     <>
-                      <option value="DRAFT">DRAFT</option>
-                      <option value="OPEN">OPEN</option>
+                  <option value="DRAFT">DRAFT</option>
+                  <option value="OPEN">OPEN</option>
                     </>
                   )}
                   {cycle.status === 'OPEN' && (
@@ -302,12 +302,12 @@ export default function CycleDetail() {
         <div className="alert alert-info mb-3">
           <strong>Quick Actions:</strong>{' '}
           {cycle.status === 'DRAFT' && (
-            <button
+          <button
               className="btn btn-sm btn-success me-2"
-              onClick={() => handleStatusChange('OPEN')}
-            >
-              Open Cycle
-            </button>
+            onClick={() => handleStatusChange('OPEN')}
+          >
+            Open Cycle
+          </button>
           )}
           {cycle.status === 'OPEN' && (
             <>

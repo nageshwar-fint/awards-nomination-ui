@@ -48,7 +48,16 @@ export default function Login() {
       
       // Provide more specific error messages
       let errorMsg = 'Login failed'
-      if (err.status === 401 || err.status === 403) {
+      if (err.status === 403) {
+        // Check if it's an employee login attempt
+        if (err.message && err.message.includes('Employee accounts cannot login')) {
+          errorMsg = 'Employee accounts cannot login to the system. Please contact your administrator if you need access.'
+        } else if (err.message && err.message.includes('Account is inactive')) {
+          errorMsg = 'Account is inactive. Please contact administrator.'
+        } else {
+          errorMsg = err.message || 'Access denied. Please contact administrator.'
+        }
+      } else if (err.status === 401) {
         errorMsg = 'Invalid email or password'
       } else if (err.status === 400) {
         // Check if it's the backend serialization error (UserRead password field issue)

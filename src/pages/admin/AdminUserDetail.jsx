@@ -162,10 +162,10 @@ export default function AdminUserDetail() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Team</label>
+            <label className="form-label">Department</label>
             {loadingTeams ? (
               <div className="form-control">
-                <small className="text-muted">Loading teams...</small>
+                <small className="text-muted">Loading departments...</small>
               </div>
             ) : (
               <select
@@ -175,7 +175,7 @@ export default function AdminUserDetail() {
                   setUser({ ...user, team_id: e.target.value || null })
                 }
               >
-                <option value="">No team (leave empty)</option>
+                <option value="">No department (leave empty)</option>
                 {teams.map((team) => (
                   <option key={team.id} value={team.id}>
                     {team.name}
@@ -183,7 +183,7 @@ export default function AdminUserDetail() {
                 ))}
               </select>
             )}
-            <small className="text-muted">Optional: Select a team if user belongs to a team</small>
+            <small className="text-muted">Optional: Select a department if user belongs to a department</small>
           </div>
 
           <div className="mt-4">

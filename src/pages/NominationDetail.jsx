@@ -141,12 +141,12 @@ export default function NominationDetail() {
               Revert Nomination
             </button>
           )}
-          <button
-            className="btn btn-outline-secondary"
-            onClick={() => navigate(-1)}
-          >
-            Back
-          </button>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => navigate(-1)}
+        >
+          Back
+        </button>
         </div>
       </div>
 

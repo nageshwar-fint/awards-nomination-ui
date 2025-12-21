@@ -174,19 +174,19 @@ export default function Register() {
           </small>
         )}
 
-        {/* Team */}
+        {/* Department */}
         <div className="mb-3">
-          <label className="form-label">Team (Optional)</label>
+          <label className="form-label">Department (Optional)</label>
           {loadingTeams ? (
             <div className="form-control">
-              <small className="text-muted">Loading teams...</small>
+              <small className="text-muted">Loading departments...</small>
             </div>
           ) : (
             <select
               className="form-select"
               {...register('team_id')}
             >
-              <option value="">No team (leave empty)</option>
+              <option value="">No department (leave empty)</option>
               {teams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
@@ -195,7 +195,7 @@ export default function Register() {
             </select>
           )}
           <small className="form-text text-muted">
-            Optional: Select a team if you belong to a team
+            Optional: Select a department if you belong to a department
           </small>
         </div>
 

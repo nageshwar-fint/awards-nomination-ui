@@ -241,7 +241,7 @@ export default function AdminUsers() {
                             <th>Name</th>
                             <th>Email</th>
                             <th>Status</th>
-                            <th>Team</th>
+                            <th>Department</th>
                             <th>Actions</th>
                           </tr>
                         </thead>
@@ -268,7 +268,7 @@ export default function AdminUsers() {
                               </td>
                               <td>
                                 <span className="text-muted">
-                                  {user.team_name || 'No team'}
+                                  {user.team_name || 'No department'}
                                 </span>
                               </td>
                               <td>

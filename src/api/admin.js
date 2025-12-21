@@ -42,3 +42,14 @@ export const createUser = (data) =>
     method: 'POST',
     body: JSON.stringify(data),
   })
+
+export const createUsersBulk = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  // Don't pass headers: {} - let apiRequest handle it to ensure Authorization header is included
+  return apiRequest('/admin/users/bulk', {
+    method: 'POST',
+    body: formData
+  })
+}

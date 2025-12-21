@@ -28,8 +28,9 @@ function ApprovalsContent() {
   const [rating, setRating] = useState('')
   const [criteria, setCriteria] = useState([])
   const [nominationScores, setNominationScores] = useState([])
-  const [criteriaReviews, setCriteriaReviews] = useState({}) // { criteriaId: { rating, comment } }
+  const [criteriaReviews, setCriteriaReviews] = useState({}) // { criteriaId: { rating } }
   const [loadingNominationDetails, setLoadingNominationDetails] = useState(false)
+  const [ratingErrors, setRatingErrors] = useState({}) // { criteriaId: errorMessage }
 
   useEffect(() => {
     loadData()
@@ -83,7 +84,7 @@ function ApprovalsContent() {
       // Initialize criteria reviews with empty values
       const initialReviews = {}
       criteriaData.filter(c => c.is_active).forEach(crit => {
-        initialReviews[crit.id] = { rating: '', comment: '' }
+        initialReviews[crit.id] = { rating: '' }
       })
       setCriteriaReviews(initialReviews)
     } catch (err) {
@@ -103,27 +104,82 @@ function ApprovalsContent() {
     
     criteria.forEach(crit => {
       const review = criteriaReviews[crit.id]
+      const weight = parseFloat(crit.weight) || 0
+      
+      // If no rating entered, treat as 0
+      let rating = 0
       if (review && review.rating !== '') {
-        const rating = parseFloat(review.rating) || 0
-        const weight = parseFloat(crit.weight) || 0
+        rating = parseFloat(review.rating) || 0
         
-        // Validate rating is within criterion weight
-        if (rating < 0 || rating > weight) {
-          return null // Invalid rating
-        }
-        
-        totalWeightedRating += rating
-        totalWeight += weight
+        // Clamp rating to valid range (0 to weight)
+        if (rating < 0) rating = 0
+        if (rating > weight) rating = weight
       }
+      
+      totalWeightedRating += rating
+      totalWeight += weight
     })
     
-    if (totalWeight === 0) return null
+    if (totalWeight === 0) return 0
     
     // Scale to 0-10
     return (totalWeightedRating / totalWeight) * 10
   }
 
   const handleCriteriaReviewChange = (criteriaId, field, value) => {
+    // Validate rating if it's a rating field
+    if (field === 'rating') {
+      const crit = criteria.find(c => c.id === criteriaId)
+      if (crit) {
+        const weight = parseFloat(crit.weight) || 0
+        const ratingValue = value === '' ? '' : parseFloat(value)
+        
+        // Check if value is empty (allow empty for now, will validate on submit)
+        if (value === '') {
+          setRatingErrors(prev => {
+            const newErrors = { ...prev }
+            delete newErrors[criteriaId]
+            return newErrors
+          })
+        } else if (isNaN(ratingValue)) {
+          // Invalid number
+          setRatingErrors(prev => ({
+            ...prev,
+            [criteriaId]: 'Please enter a valid number'
+          }))
+          return // Don't update the value
+        } else {
+          // Clamp value to valid range immediately
+          let clampedValue = ratingValue
+          if (ratingValue < 0) {
+            clampedValue = 0
+            setRatingErrors(prev => ({
+              ...prev,
+              [criteriaId]: `Rating cannot be less than 0`
+            }))
+          } else if (ratingValue > weight) {
+            clampedValue = weight
+            setRatingErrors(prev => ({
+              ...prev,
+              [criteriaId]: `Rating cannot exceed ${weight} (criterion weight). Set to maximum.`
+            }))
+          } else {
+            // Valid value - clear error
+            setRatingErrors(prev => {
+              const newErrors = { ...prev }
+              delete newErrors[criteriaId]
+              return newErrors
+            })
+          }
+          
+          // Use clamped value if it was out of range
+          if (clampedValue !== ratingValue) {
+            value = clampedValue.toString()
+          }
+        }
+      }
+    }
+    
     setCriteriaReviews(prev => ({
       ...prev,
       [criteriaId]: {
@@ -135,9 +191,7 @@ function ApprovalsContent() {
     // Auto-calculate total rating when criteria reviews change
     if (field === 'rating') {
       const calculatedRating = calculateTotalRating()
-      if (calculatedRating !== null) {
-        setRating(calculatedRating.toFixed(2))
-      }
+      setRating(calculatedRating.toFixed(2))
     }
   }
 
@@ -185,10 +239,6 @@ function ApprovalsContent() {
       
       // Calculate and validate total rating
       const calculatedRating = calculateTotalRating()
-      if (calculatedRating === null) {
-        handleError('Failed to calculate total rating', 'Failed to calculate total rating', `approval-calc-${selectedNomination.id}`)
-        return
-      }
       
       if (calculatedRating < 0 || calculatedRating > 10) {
         handleError('Total rating must be between 0 and 10', 'Total rating must be between 0 and 10', `approval-total-${selectedNomination.id}`)
@@ -206,10 +256,19 @@ function ApprovalsContent() {
       if (actionType === 'approve') {
         const reviews = criteria.map(crit => {
           const review = criteriaReviews[crit.id]
+          const weight = parseFloat(crit.weight) || 0
+          let rating = 0
+          
+          if (review && review.rating !== '') {
+            rating = parseFloat(review.rating) || 0
+            // Ensure rating is within bounds
+            if (rating < 0) rating = 0
+            if (rating > weight) rating = weight
+          }
+          
           return {
             criteria_id: crit.id,
-            rating: parseFloat(review.rating),
-            comment: review.comment || null
+            rating: rating
           }
         })
         payload.criteria_reviews = reviews
@@ -234,6 +293,7 @@ function ApprovalsContent() {
       setCriteriaReviews({})
       setCriteria([])
       setNominationScores([])
+      setRatingErrors({})
       loadData()
     } catch (err) {
       handleError(err, `Failed to ${actionType} nomination`, `approval-${actionType}-${selectedNomination.id}`)
@@ -249,26 +309,11 @@ function ApprovalsContent() {
     setCriteriaReviews({})
     setCriteria([])
     setNominationScores([])
+    setRatingErrors({})
   }
   
   const getCriteriaAnswer = (criteriaId) => {
     return nominationScores.find(s => s.criteria_id === criteriaId)
-  }
-  
-  const formatAnswer = (score) => {
-    if (!score || !score.answer) return 'No answer provided'
-    
-    const answer = score.answer
-    if (answer.text) {
-      return answer.text
-    }
-    if (answer.selected) {
-      return answer.selected
-    }
-    if (answer.selected_list && Array.isArray(answer.selected_list)) {
-      return answer.selected_list.join(', ')
-    }
-    return 'No answer provided'
   }
 
   const getUserName = (nomination, field) => {
@@ -423,10 +468,10 @@ function ApprovalsContent() {
                   {/* Criteria Review Section */}
                   {actionType === 'approve' && criteria.length > 0 && (
                     <div className="mb-4">
-                      <h6 className="mb-3">Review Criteria (Please provide rating and comment for each criterion)</h6>
+                      <h6 className="mb-3">Review Criteria (Please provide rating for each criterion)</h6>
                       {criteria.map((crit) => {
                         const score = getCriteriaAnswer(crit.id)
-                        const review = criteriaReviews[crit.id] || { rating: '', comment: '' }
+                        const review = criteriaReviews[crit.id] || { rating: '' }
                         
                         return (
                           <div key={crit.id} className="card mb-3">
@@ -473,7 +518,7 @@ function ApprovalsContent() {
                               
                               {/* Manager's review */}
                               <div className="row">
-                                <div className="col-md-4 mb-2">
+                                <div className="col-md-12 mb-2">
                                   <label className="form-label small">
                                     Your Rating (0 - {crit.weight}) *
                                   </label>
@@ -482,24 +527,21 @@ function ApprovalsContent() {
                                     min="0"
                                     max={crit.weight}
                                     step="0.01"
-                                    className="form-control form-control-sm"
+                                    className={`form-control form-control-sm ${ratingErrors[crit.id] ? 'is-invalid' : ''}`}
                                     placeholder={`0 - ${crit.weight}`}
                                     value={review.rating}
                                     onChange={(e) => handleCriteriaReviewChange(crit.id, 'rating', e.target.value)}
+                                    onBlur={(e) => handleCriteriaReviewChange(crit.id, 'rating', e.target.value, true)}
                                     required
                                   />
-                                </div>
-                                <div className="col-md-8 mb-2">
-                                  <label className="form-label small">
-                                    Your Comment
-                                  </label>
-                                  <textarea
-                                    className="form-control form-control-sm"
-                                    rows="2"
-                                    placeholder="Enter your comment..."
-                                    value={review.comment}
-                                    onChange={(e) => handleCriteriaReviewChange(crit.id, 'comment', e.target.value)}
-                                  />
+                                  {ratingErrors[crit.id] && (
+                                    <div className="invalid-feedback d-block">
+                                      {ratingErrors[crit.id]}
+                                    </div>
+                                  )}
+                                  <small className="form-text text-muted">
+                                    Maximum allowed: {crit.weight}
+                                  </small>
                                 </div>
                               </div>
                             </div>
@@ -509,7 +551,7 @@ function ApprovalsContent() {
                       
                       {/* Calculated Total Rating */}
                       <div className="alert alert-info">
-                        <strong>Calculated Total Rating:</strong> {rating ? `${parseFloat(rating).toFixed(2)} / 10` : 'Complete all criteria reviews to see total rating'}
+                        <strong>Calculated Total Rating:</strong> {rating ? `${parseFloat(rating).toFixed(2)} / 10` : '0.00 / 10 (no ratings entered yet)'}
                       </div>
                     </div>
                   )}

@@ -22,10 +22,27 @@ export async function apiRequest(path, options = {}) {
   try {
     // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
     const isFormData = options.body instanceof FormData
-    const headers = {
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(shouldAddAuth ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {})
+    
+    // Build headers - Authorization must be included if token exists
+    const headers = {}
+    
+    // Only set Content-Type for non-FormData requests
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json'
+    }
+    
+    // Always add Authorization if we have a token and it's not an auth endpoint
+    if (shouldAddAuth && token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    // Merge any additional headers from options (but ensure Authorization is not overridden)
+    if (options.headers) {
+      Object.assign(headers, options.headers)
+      // Re-apply Authorization to ensure it's not overridden
+      if (shouldAddAuth && token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
     }
     
     const res = await fetch(`${BASE_URL}${path}`, {
