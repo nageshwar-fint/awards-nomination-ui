@@ -184,7 +184,7 @@ export default function Register() {
           ) : (
             <select
               className="form-select"
-              {...register('team_id')}
+          {...register('team_id')}
             >
               <option value="">No department (leave empty)</option>
               {teams.map((team) => (
